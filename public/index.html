@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product and Order List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: calc(25% - 22px);
+            display: inline-block;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .detail {
+            display: none;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Product List</h1>
+    <div class="form-section">
+        <h2>Create Product</h2>
+        <input type="text" id="productName" placeholder="Name">
+        <input type="number" id="productPrice" placeholder="Price">
+        <input type="number" id="productStock" placeholder="Stock">
+        <input type="number" id="productSold" placeholder="Sold">
+        <button onclick="createProduct()">Add Product</button>
+    </div>
+
+    <table id="productTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Sold</th>
+                <th>Created At</th>
+                <th>Updated At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="detail" id="productDetail"></div>
+
+    <div class="form-section">
+        <h2>Update Product</h2>
+        <input type="number" id="updateProductId" placeholder="Product ID">
+        <input type="text" id="updateProductName" placeholder="New Name">
+        <input type="number" id="updateProductPrice" placeholder="New Price">
+        <input type="number" id="updateProductStock" placeholder="New Stock">
+        <input type="number" id="updateProductSold" placeholder="New Sold">
+        <button onclick="updateProduct()">Update Product</button>
+    </div>
+
+    <h1>Order List</h1>
+    <table id="orderTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Sold</th>
+                <th>Created At</th>
+                <th>Updated At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="detail" id="orderDetail"></div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/products';
+        const orderApiUrl = 'http://localhost:3000/orders';
+
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                displayProducts(data.data);
+            } catch (error) {
+                console.error('Error fetching products:', error);
+            }
+        };
+
+        const displayProducts = (products) => {
+            const tbody = document.querySelector('#productTable tbody');
+            tbody.innerHTML = '';
+
+            products.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>${product.price}</td>
+                    <td>${product.stock}</td>
+                    <td>${product.sold}</td>
+                    <td>${product.created_at}</td>
+                    <td>${product.updated_at}</td>
+                    <td class="action-buttons">
+                        <button onclick="viewProductDetail(${product.id})">Detail</button>
+                        <button onclick="deleteProduct(${product.id})">Delete</button>
+                        <button onclick="showUpdateFields(${product.id}, '${product.name}', ${product.price}, ${product.stock}, ${product.sold})">Update</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        };
+
+        const viewProductDetail = async (id) => {
+            try {
+                const response = await fetch(`${apiUrl}/${id}`);
+                if (!response.ok) throw new Error('Failed to fetch product detail');
+                const data = await response.json();
+                displayProductDetail(data.data);
+            } catch (error) {
+                console.error('Error fetching product detail:', error);
+            }
+        };
+
+        const displayProductDetail = (product) => {
+            const detailDiv = document.getElementById('productDetail');
+            detailDiv.innerHTML = `
+                <h3>Product Detail</h3>
+                <p><strong>ID:</strong> ${product.id}</p>
+                <p><strong>Name:</strong> ${product.name}</p>
+                <p><strong>Price:</strong> ${product.price}</p>
+                <p><strong>Stock:</strong> ${product.stock}</p>
+                <p><strong>Sold:</strong> ${product.sold}</p>
+                <p><strong>Created At:</strong> ${product.created_at}</p>
+                <p><strong>Updated At:</strong> ${product.updated_at}</p>
+            `;
+            detailDiv.style.display = 'block';
+        };
+
+        const createProduct = async () => {
+            const name = document.getElementById('productName').value;
+            const price = document.getElementById('productPrice').value;
+            const stock = document.getElementById('productStock').value;
+            const sold = document.getElementById('productSold').value;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, stock, sold })
+                });
+                if (!response.ok) throw new Error('Failed to create product');
+                await fetchProducts();
+            } catch (error) {
+                console.error('Error creating product:', error);
+            }
+        };
+
+        const deleteProduct = async (id) => {
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Failed to delete product');
+                await fetchProducts();
+            } catch (error) {
+                console.error('Error deleting product:', error);
+            }
+        };
+
+        const showUpdateFields = (id, name, price, stock, sold) => {
+            document.getElementById('updateProductId').value = id;
+            document.getElementById('updateProductName').value = name;
+            document.getElementById('updateProductPrice').value = price;
+            document.getElementById('updateProductStock').value = stock;
+            document.getElementById('updateProductSold').value = sold;
+        };
+
+        const updateProduct = async () => {
+            const id = document.getElementById('updateProductId').value;
+            const name = document.getElementById('updateProductName').value;
+            const price = document.getElementById('updateProductPrice').value;
+            const stock = document.getElementById('updateProductStock').value;
+            const sold = document.getElementById('updateProductSold').value;
+
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, stock, sold })
+                });
+                if (!response.ok) throw new Error('Failed to update product');
+                await fetchProducts();
+            } catch (error) {
+                console.error('Error updating product:', error);
+            }
+        };
+
+        const fetchOrders = async () => {
+            try {
+                const response = await fetch(orderApiUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                displayOrders(data.data);
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+            }
+        };
+
+        const displayOrders = (orders) => {
+            const tbody = document.querySelector('#orderTable tbody');
+            tbody.innerHTML = '';
+
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${order.id}</td>
+                    <td>${order.product.id}</td>
+                    <td>${order.product.name}</td>
+                    <td>${order.product.quantity}</td>
+                    <td>${order.product.price}</td>
+                    <td>${order.product.stock}</td>
+                    <td>${order.product.sold}</td>
+                    <td>${order.created_at}</td>
+                    <td>${order.updated_at}</td>
+                    <td class="action-buttons">
+                        <button onclick="viewOrderDetail(${order.id})">Detail</button>
+                        <button onclick="deleteOrder(${order.id})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        };
+
+        const viewOrderDetail = async (id) => {
+            try {
+                const response = await fetch(`${orderApiUrl}/${id}`);
+                if (!response.ok) throw new Error('Failed to fetch order detail');
+                const data = await response.json();
+                displayOrderDetail(data.data);
+            } catch (error) {
+                console.error('Error fetching order detail:', error);
+            }
+        };
+
+        const displayOrderDetail = (order) => {
+            const detailDiv = document.getElementById('orderDetail');
+            detailDiv.innerHTML = `
+                <h3>Order Detail</h3>
+                <p><strong>ID:</strong> ${order.id}</p>
+                <p><strong>Product ID:</strong> ${order.product.id}</p>
+                <p><strong>Product Name:</strong> ${order.product.name}</p>
+                <p><strong>Quantity:</strong> ${order.product.quantity}</p>
+                <p><strong>Price:</strong> ${order.product.price}</p>
+                <p><strong>Stock:</strong> ${order.product.stock}</p>
+                <p><strong>Sold:</strong> ${order.product.sold}</p>
+                <p><strong>Created At:</strong> ${order.created_at}</p>
+                <p><strong>Updated At:</strong> ${order.updated_at}</p>
+            `;
+            detailDiv.style.display = 'block';
+        };
+
+        const deleteOrder = async (id) => {
+            try {
+                const response = await fetch(`${orderApiUrl}/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Failed to delete order');
+                await fetchOrders();
+            } catch (error) {
+                console.error('Error deleting order:', error);
+            }
+        };
+
+        // Initial data fetch
+        fetchProducts();
+        fetchOrders();
+    </script>
+</body>
+</html>
